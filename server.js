@@ -12,6 +12,7 @@ const statsRoutes = require('./routes/stats');
 const heartbeatRoutes = require('./routes/heartbeat');
 const statusRoutes = require('./routes/status');
 const phoneDataRoutes = require('./routes/phoneData');
+const hookDataRoutes = require('./routes/hookData');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,6 +47,7 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/heartbeat', heartbeatRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/phone-data', phoneDataRoutes);
+app.use('/api/hook-data', hookDataRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
