@@ -147,4 +147,29 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
   }
 });
 
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.user.id);
+    if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Head')) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const hookData = await HookData.findById(req.params.id);
+    if (!hookData) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+
+    if (currentUser.role === 'Head' && currentUser.team &&
+        String(hookData.team) !== String(currentUser.team)) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    await HookData.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'ลบสำเร็จ' });
+  } catch (error) {
+    console.error('HookData delete error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
