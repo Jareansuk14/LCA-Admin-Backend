@@ -132,12 +132,14 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    const username = hookData.uploadedBy?.user || 'user';
-    const stamp = new Date(hookData.uploadedAt).toISOString().slice(0, 10);
-    const fileName = hookData.fileName || `${username}_${stamp}.txt`;
+    const d = new Date(hookData.uploadedAt);
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
+    const timeStr = `${pad(d.getHours())}.${pad(d.getMinutes())}.${pad(d.getSeconds())}`;
+    const fileName = `วันที่${dateStr} เวลา ${timeStr} จำนวน ${hookData.totalCount} เบอร์.txt`;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
     res.send(hookData.phoneNumbers.join('\n'));
   } catch (error) {
     console.error('HookData download error:', error);
