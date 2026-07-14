@@ -1,0 +1,64 @@
+const express = require('express');
+const User = require('../models/User');
+const PhoneData = require('../models/PhoneData');
+const { authenticateToken } = require('../middleware/auth');
+
+const router = express.Router();
+
+// Heartbeat endpoint สำหรับ LineAPIBot
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    
+    // หา user ปัจจุบันเพื่อเช็คสถานะ
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    const onlineThreshold = 90; // วินาที
+    const wasOnline = user.lastHeartbeatAt && 
+      (now - new Date(user.lastHeartbeatAt)) / 1000 < onlineThreshold;
+    
+    const updateData = {
+      lastHeartbeatAt: now
+    };
+    
+    // ถ้าเปลี่ยนจากออฟไลน์เป็นออนไลน์ หรือยังไม่มี onlineSince ให้รีเซ็ท heartbeatCount
+    if (!wasOnline || !user.onlineSince) {
+      updateData.onlineSince = now;
+      updateData.heartbeatCount = 1; // เริ่มนับจาก 1
+    } else {
+      // ถ้ายังออนไลน์อยู่ ให้เพิ่ม heartbeatCount
+      updateData.heartbeatCount = (user.heartbeatCount || 0) + 1;
+    }
+    
+    await User.findByIdAndUpdate(userId, updateData);
+    
+    const response = { success: true };
+    
+    // Send shutdown command if pending
+    if (user.pendingCommand) {
+      response.command = user.pendingCommand;
+    }
+    
+    // Check for pending phone data (no need to check isDeleted since we use hard delete)
+    const pendingPhoneData = await PhoneData.countDocuments({
+      targetUser: userId,
+      isDownloaded: false
+    });
+    
+    if (pendingPhoneData > 0) {
+      response.hasPendingPhoneData = true;
+      response.pendingPhoneDataCount = pendingPhoneData;
+    }
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Heartbeat error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+module.exports = router;
