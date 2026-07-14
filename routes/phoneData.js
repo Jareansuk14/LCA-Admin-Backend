@@ -53,9 +53,9 @@ router.get('/team-members', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    const allowedRoles = ['Head', 'Admin', 'Audit'];
+    const allowedRoles = ['Head', 'Admin'];
     if (!allowedRoles.includes(currentUser.role)) {
-      return res.status(403).json({ success: false, message: 'Access denied. Head, Admin, or Audit role required.' });
+      return res.status(403).json({ success: false, message: 'Access denied. Head or Admin role required.' });
     }
     
     let query = {};
@@ -70,7 +70,7 @@ router.get('/team-members', authenticateToken, async (req, res) => {
       .populate('team', 'name')
       .sort({ lastLoginAt: -1 });
     
-    res.json({ success: true, members, canUpload: currentUser.role !== 'Audit' });
+    res.json({ success: true, members, canUpload: true });
   } catch (error) {
     console.error('Get team members error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -178,7 +178,7 @@ router.post('/validate',
 router.get('/history/:userId', authenticateToken, async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id);
-    const allowedRoles = ['Head', 'Admin', 'Audit'];
+    const allowedRoles = ['Head', 'Admin'];
     if (!currentUser || !allowedRoles.includes(currentUser.role)) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }

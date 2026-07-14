@@ -1,26 +1,33 @@
 const User = require('../models/User');
 
+const seedUserIfMissing = async ({ user, password, role }) => {
+  const existing = await User.findOne({ user });
+
+  if (!existing) {
+    await new User({ user, password, role }).save();
+    console.log(`Default ${role} user created successfully`);
+    console.log(`Username: ${user}`);
+    console.log(`Password: ${password}`);
+  } else {
+    console.log(`Default user already exists: ${user}`);
+  }
+};
+
 const seedDefaultAdmin = async () => {
   try {
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ user: 'Admin' });
-    
-    if (!existingAdmin) {
-      const defaultAdmin = new User({
-        user: 'Admin',
-        password: '1234',
-        role: 'Admin'
-      });
+    await seedUserIfMissing({
+      user: 'Admin',
+      password: '1234',
+      role: 'Admin'
+    });
 
-      await defaultAdmin.save();
-      console.log('Default admin user created successfully');
-      console.log('Username: Admin');
-      console.log('Password: 1234');
-    } else {
-      console.log('Default admin user already exists');
-    }
+    await seedUserIfMissing({
+      user: 'TEST',
+      password: 'TEST123',
+      role: 'User'
+    });
   } catch (error) {
-    console.error('Error creating default admin:', error);
+    console.error('Error seeding default users:', error);
   }
 };
 
