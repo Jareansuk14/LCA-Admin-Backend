@@ -13,6 +13,8 @@ const heartbeatRoutes = require('./routes/heartbeat');
 const statusRoutes = require('./routes/status');
 const phoneDataRoutes = require('./routes/phoneData');
 const hookDataRoutes = require('./routes/hookData');
+const onlyDevRoutes = require('./routes/onlyDev');
+const seedOnlyDevGate = require('./utils/seedOnlyDevGate');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -48,6 +50,7 @@ app.use('/api/heartbeat', heartbeatRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/phone-data', phoneDataRoutes);
 app.use('/api/hook-data', hookDataRoutes);
+app.use('/api/only-dev', onlyDevRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -76,6 +79,7 @@ const startServer = async () => {
     
     // Seed default admin user
     await seedDefaultAdmin();
+    await seedOnlyDevGate();
     
     // Start listening
     app.listen(PORT, () => {
