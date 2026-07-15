@@ -5,6 +5,9 @@ const { generateToken, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+const isDesktopClient = (clientType) =>
+  clientType === 'LineAPIBot' || clientType === 'LCA';
+
 router.post('/login', [
   body('user').notEmpty().withMessage('Username is required'),
   body('password').notEmpty().withMessage('Password is required')
@@ -38,21 +41,21 @@ router.post('/login', [
       });
     }
 
-    // Block LineAPIBot login when account is disabled
-    if (clientType === 'LineAPIBot' && foundUser.enabled === false) {
+    // Block desktop client login when account is disabled
+    if (isDesktopClient(clientType) && foundUser.enabled === false) {
       return res.status(403).json({
         success: false,
         message: 'บัญชีนี้ถูกปิดการใช้งาน ไม่สามารถล็อกอินได้'
       });
     }
 
-    if (clientType === 'LineAPIBot') {
+    if (isDesktopClient(clientType)) {
       if (hwid) {
         // ตรวจสอบว่าบัญชีนี้มี HWID อยู่แล้วหรือไม่
         if (foundUser.hwid && foundUser.hwid !== hwid) {
           return res.status(403).json({
             success: false,
-            message: 'บัญชีนี้ถูกผูกกับเครื่องอื่นแล้ว ไม่สามารถใช้งานได้'
+            message: 'This account is already bound to another machine'
           });
         }
         
@@ -65,7 +68,7 @@ router.post('/login', [
         if (existingUserWithHwid) {
           return res.status(403).json({
             success: false,
-            message: `HWID นี้ถูกใช้งานโดยบัญชีอื่นแล้ว ไม่สามารถใช้งานได้ (ซ้ำกับ User: ${existingUserWithHwid.user})`
+            message: `This HWID is already in use by another account (User: ${existingUserWithHwid.user})`
           });
         }
         
@@ -85,7 +88,7 @@ router.post('/login', [
         foundUser.clientVersion = clientVersion;
       }
     }
-    // For LineAdmin Frontend and LineDaily, skip HWID check
+    // For web admin clients, skip HWID check
 
     const userIP = req.headers['x-forwarded-for'] || 
                    req.headers['x-real-ip'] || 
@@ -121,8 +124,8 @@ router.post('/login', [
       }
     };
 
-    // Send shutdown command if pending (for LineAPIBot client only)
-    if (clientType === 'LineAPIBot' && foundUser.pendingCommand) {
+    // Send shutdown command if pending (for desktop clients)
+    if (isDesktopClient(clientType) && foundUser.pendingCommand) {
       response.command = foundUser.pendingCommand;
     }
 
